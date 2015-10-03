@@ -1,0 +1,33 @@
+﻿@Interface
+{
+	imports: [ "std:basicInterface.jinc", "myClasses.jinc" ],
+	name: "MyInterface",
+	type: -WINDOW, version: @Version { standart: 1, description: "jint 0.01 alpha" },
+	elements:
+	[
+		@Window("HelloWorld", null, (400; auto), -FLAT, -CLOSE, -THIN)
+		{
+			//text: "Hello World",
+			//border: -THIN,
+			//style: -FLAT,
+			//buttons: -CLOSE,
+			//size: (400; auto),
+			flow-type: -VERTICAL, flow-width: 100%,
+			padding: 10,
+			elements:
+			[
+				@Label("Click the red button!", null, auto) { sizeSource: -FLOW },
+				@MyButton("OK", "my_btn", (80; 25), -RED)
+				{
+					//text: "OK",
+					tooltipText: "Click here!",
+					//colorStyle: -RED,
+					//id: "my_btn",
+					//size: (80; 25),
+					align: -RIGHT,
+					margin: 5
+				}
+			]
+		}
+	]
+}
