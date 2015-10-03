@@ -1,4 +1,144 @@
 /*
+	** jint Basic Classes
+	**
+	** Here goes some basic classes, that are used in almost 
+	** every application that runs with jint.
+*/
+
+// This class is used to store 2D size (width and height)
+function Size(width, height)
+{
+	this.width=width; this.height=height;
+	this.scale=function(xscale, yscale)
+	{
+		if(!j_isset(yscale)) yscale=xscale;
+		this.width*=xscale; this.height*=yscale;
+	}
+}
+
+// This class stores 2D position (almost the same to Size, but just with other names)
+function Point(x, y)
+{
+	this.x=x; this.y=y;
+}
+
+// This class stores RGBA color
+function Color()
+{
+	var r=0, g=0, b=0, a=1;
+	switch(arguments.length)
+	{
+	case 0: break;
+	case 1:
+		r=g=b=arguments[0];
+	break;
+	case 2:
+		r=g=b=arguments[0]; a=arguments[1];
+	break;
+	case 3:
+		r=arguments[0]; g=arguments[1]; b=arguments[2];
+	break;
+	default:
+		r=arguments[0]; g=arguments[1]; b=arguments[2]; a=arguments[3];
+	break;
+	}
+	
+	r=Math.max(0, Math.min(r, 255)); g=Math.max(0, Math.min(g, 255)); b=Math.max(0, Math.min(b, 255));
+	a=Math.max(0, Math.min(a, 1));
+	
+	//this.red=r; this.green=g; this.blue=b; this.alpha=a;
+	Object.defineProperty(this, 'red', {
+		get: function() { return r; },
+		set: function(value)
+		{
+			r=Math.max(0, Math.min(value, 255));
+		}
+	});
+	Object.defineProperty(this, 'green', {
+		get: function() { return g; },
+		set: function(value)
+		{
+			g=Math.max(0, Math.min(value, 255));
+		}
+	});
+	Object.defineProperty(this, 'blue', {
+		get: function() { return b; },
+		set: function(value)
+		{
+			b=Math.max(0, Math.min(value, 255));
+		}
+	});
+	Object.defineProperty(this, 'alpha', {
+		get: function() { return a; },
+		set: function(value)
+		{
+			a=Math.max(0, Math.min(value, 1));
+		}
+	});
+	
+	this.toHex=function()
+	{
+		return '#'+this.red.toString(16)+', '+this.green.toString(16)+', '+this.blue.toString(16)+');';
+	}
+	this.toString=function()
+	{
+		if(a<1) return 'rgba('+this.red+', '+this.green+', '+this.blue+', '+this.alpha+');';
+		else return 'rgb('+this.red+', '+this.green+', '+this.blue+');';
+	}
+}
+
+// This class stores a rectangle (4 numbers) and declares its sides' properties
+function Rect(x, y, width, height)
+{
+	this.x=x; this.y=y;
+	var _w=width, _h=height;
+	if(_w<0) _w=0;
+	if(_h<0) _h=0;
+	
+	Object.defineProperty(this, 'left', {
+		get: function() { return this.x; },
+		set: function(value)
+		{
+			this.x=value;
+		}
+	});
+	
+	Object.defineProperty(this, 'right', {
+		get: function() { return this.x+_w; }
+	});
+	
+	Object.defineProperty(this, 'top', {
+		get: function() { return this.y; },
+		set: function(value)
+		{
+			this.y=value;
+		}
+	});
+	
+	Object.defineProperty(this, 'bottom', {
+		get: function() { return this.y+_h; }
+	});
+	
+	Object.defineProperty(this, 'width', {
+		get: function() { return _w; },
+		set: function(value)
+		{
+			if(value<0) _w=0;
+			else _w=value;
+		}
+	});
+	Object.defineProperty(this, 'height', {
+		get: function() { return _h; },
+		set: function(value)
+		{
+			if(value<0) _h=0;
+			else _h=value;
+		}
+	});
+}
+
+
+/*
 	** jint Help Functions
 	**
 	** All functions in this part start with 'j_' and are never
