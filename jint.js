@@ -375,6 +375,47 @@ jint.classes.register=function(classDescription)
 	parent[name].superclass=classDescription.superclass;
 }
 
+jint.createEnum=function(enumDescription)
+{
+	var name=enumDescription.name;
+	var package=enumDescription.package;
+	var values=enumDescription.values;
+	var methods=enumDescription.methods || {};
+	
+	var fullname=jint.classes.createName(name, package);
+	
+	// creating all nesessary objects
+	var names=fullname.split('.');
+	var parent=jint;
+	for(var i=0; i<names.length-1; i++)
+	{
+		if(!j_isset(parent[names[i]])) parent[names[i]]={};
+		parent=parent[names[i]];
+	}
+	
+	parent[name]={};
+	for(var i in values)
+	{
+		var tmp={};
+		// adding methods
+		for(var j in methods)
+		{
+			tmp[j]=methods[j];
+		}
+		tmp.value=values[i];
+		parent[name][values[i]]=tmp;
+		// std['MyEnum']['MY_CONSTANT']={ ... }
+	}
+}
+
+
+/*
+	** Test Section
+	**
+	** Here lay some test definitions and calls.
+	** (will be removed later)
+*/
+
 jint.classes.register({
 	name: 'Size', package: 'std',
 	init:
