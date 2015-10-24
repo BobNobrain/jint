@@ -5,25 +5,8 @@
 	** every application that runs with jint.
 */
 
-// This class is used to store 2D size (width and height)
-function Size(width, height)
-{
-	this.width=width; this.height=height;
-	this.scale=function(xscale, yscale)
-	{
-		if(!j_isset(yscale)) yscale=xscale;
-		this.width*=xscale; this.height*=yscale;
-	}
-}
-
-// This class stores 2D position (almost the same to Size, but just with other names)
-function Point(x, y)
-{
-	this.x=x; this.y=y;
-}
-
 // This class stores RGBA color
-function Color()
+function _jint_Color()
 {
 	var r=0, g=0, b=0, a=1;
 	switch(arguments.length)
@@ -82,61 +65,10 @@ function Color()
 	}
 	this.toString=function()
 	{
-		if(a<1) return 'rgba('+this.red+', '+this.green+', '+this.blue+', '+this.alpha+');';
-		else return 'rgb('+this.red+', '+this.green+', '+this.blue+');';
+		if(a<1) return 'rgba('+this.red+', '+this.green+', '+this.blue+', '+this.alpha+')';
+		else return 'rgb('+this.red+', '+this.green+', '+this.blue+')';
 	}
 }
-
-// This class stores a rectangle (4 numbers) and declares its sides' properties
-function Rect(x, y, width, height)
-{
-	this.x=x; this.y=y;
-	var _w=width, _h=height;
-	if(_w<0) _w=0;
-	if(_h<0) _h=0;
-	
-	Object.defineProperty(this, 'left', {
-		get: function() { return this.x; },
-		set: function(value)
-		{
-			this.x=value;
-		}
-	});
-	
-	Object.defineProperty(this, 'right', {
-		get: function() { return this.x+_w; }
-	});
-	
-	Object.defineProperty(this, 'top', {
-		get: function() { return this.y; },
-		set: function(value)
-		{
-			this.y=value;
-		}
-	});
-	
-	Object.defineProperty(this, 'bottom', {
-		get: function() { return this.y+_h; }
-	});
-	
-	Object.defineProperty(this, 'width', {
-		get: function() { return _w; },
-		set: function(value)
-		{
-			if(value<0) _w=0;
-			else _w=value;
-		}
-	});
-	Object.defineProperty(this, 'height', {
-		get: function() { return _h; },
-		set: function(value)
-		{
-			if(value<0) _h=0;
-			else _h=value;
-		}
-	});
-}
-
 
 /*
 	** jint Help Functions
@@ -166,6 +98,7 @@ function j_create_sig(args)
 }
 
 // Checks if given signature description matches given arguments list
+// TODO: check the most appropriate sig
 function j_match_sig(sig, args) { return j_compare_sigs(sig, j_create_sig(args)); }
 
 // Checks whether given signature descriptions describe the same signature
@@ -192,7 +125,10 @@ function j_compare_sigs(sig1, sig2)
 function j_compare_sig_entries(entry1, entry2)
 {
 	var e1=entry1.split(' '), e2=entry2.split(' ');
-	return e1[0]==e2[0]; // types are equal <=> entries are equal
+	if(e1[0]==e2[0]) return true; // types are equal <=> entries are equal
+	if(jint.classes.getParentDepth(e1[0], e2[0])!=-1) return true; // (entry1) is parent of (entry2)
+	if(jint.classes.getParentDepth(e2[0], e1[0])!=-1) return true; // (entry2) is parent of (entry1)
+	return false;
 }
 
 // Clears trailing, leading and doubling whitespaces
@@ -296,12 +232,74 @@ jint.Object=function()
 
 jint.classes={};
 
+jint.std={};
+jint.std.Object=jint.Object;
+
 jint.classes.createName=function(name, package)
 { return j_isset(package)? package+'.'+name : name; }
 
+jint.classes.all=[ 'std.Object' ];
+jint.classes.getByFullName=function(name)
+{
+	var names=name.split('.');
+	var parent=jint;
+	for(var i=0; i<names.length-1; i++)
+	{
+		if(!j_isset(parent[names[i]])) throw new Error('Namespace "'+names[i]+'" in path "'+name+'" does not exist.');
+		parent=parent[names[i]];
+	}
+	// setting name to classname
+	name=names[names.length-1];
+	return parent[name];
+}
+jint.classes.getByClassName=function(name)
+{
+	var result=[];
+	for(var x in jint.classes.all)
+	{
+		var arr=jint.classes.all[x].split('.');
+		if(arr[arr.length-1]==name)
+			result.push(jint.classes.getByFullName(jint.classes.all[x]));
+	}
+	return result;
+}
+// returns a number of links between found parent class and child class (e.g. 1 for direct parent, 0 for oneself, -1 if no links found)
+jint.classes.getParentDepth=function(parentName, childName)
+{
+	var parent=null, child=null;
+	// given names may both be full (supposed every name containing '.' to be full name) and class names;
+	// here we check this and choose between functions to use to find the class
+	// using an array in both cases to simplify next code
+	if(parentName.indexOf('.')!=-1) parent=[ jint.classes.getByFullName(parentName) ];
+	else parent=jint.classes.getByClassName(parentName);
+	if(childName.indexOf('.')!=-1) child=[ jint.classes.getByFullName(childName) ];
+	else child=jint.classes.getByClassName(childName);
+	
+	// now we need to assert that there'is the only child; otherwise we have names conflict
+	if(child.length>1)
+		throw new Error('There are at least two classes bearing name "'+childName+'". Use full names to avoid name conflicts.');
+	
+	child=child[0];
+	var iteration=0;
+	while(child!=null)
+	{
+		for(var i=0; i<parent.length; i++)
+		{
+			if(child==parent[i]) return iteration;
+		}
+		++iteration;
+		child=child.superclass;
+	}
+	return -1;
+}
+
+// TODO: add abstract classes
 jint.classes.register=function(classDescription)
 {
 	var name=jint.classes.createName(classDescription.name, classDescription.package);
+	
+	if(jint.classes.all.indexOf(name)==-1) jint.classes.all.push(name);
+	else throw new Error('The class "'+name+'" already exists and cannot be registered again!');
 	
 	if(!j_isset(classDescription.superclass)) classDescription.superclass=jint.Object;
 	if(!j_isset(classDescription.methods)) classDescription.methods=[];
@@ -355,7 +353,8 @@ jint.classes.register=function(classDescription)
 		{
 			this[x]=function()
 			{
-				this.classDescription.methods[arguments.callee.fname].apply(this, arguments);
+				var result=this.classDescription.methods[arguments.callee.fname].apply(this, arguments);
+				return j_isset(result)? result : this;
 			}
 			this[x].fname=x;
 		}
@@ -406,7 +405,68 @@ jint.createEnum=function(enumDescription)
 		parent[name][values[i]]=tmp;
 		// std['MyEnum']['MY_CONSTANT']={ ... }
 	}
+	parent[name].getValues=function()
+	{
+		return values;
+	}
 }
+
+jint.unpack=function(name)
+{
+	if(name.indexOf('classes')==0 || name.indexOf('*')==0 || name.indexOf('debug')==0) return;
+	
+	jint.debug.log('Unpacking "'+name+'"...');
+	
+	var package=name.split('.');
+	name=package.splice(-1, 1)[0];
+	
+	var parent=jint;
+	for(var i=0; i<package.length; i++)
+	{
+		if(!j_isset(parent[package[i]])) throw new Error('Specified package does not exist!');
+		parent=parent[package[i]];
+	}
+	
+	if(name=='*')
+	{
+		for(var x in parent)
+		{
+			window[x]=parent[x];
+		}
+	}
+	else
+	{
+		window[name]=parent[name];
+	}
+}
+
+jint.load=function(path)
+{
+	jint.debug.log('Loading "'+path+'"...');
+	var script=document.createElement('script');
+	script.setAttribute('src', path);
+	document.getElementsByTagName('head')[0].appendChild(script);
+}
+
+jint.debug={};
+jint.debug.enabled=true;
+jint.debug.journal=[];
+jint.debug.log=function(obj)
+{
+	jint.debug.journal.push( { at: new Date(), message: obj } );
+	if(jint.debug.enabled) console.log(obj);
+}
+
+
+/*
+	** Initializing section
+	**
+	** Here are being loaded main packages and libs,
+	** e.g. std.*
+*/
+auto=jint.auto={ toString: function() { return '<auto>' } };
+
+jint.load('./lib/std.js')
 
 
 /*
@@ -415,51 +475,3 @@ jint.createEnum=function(enumDescription)
 	** Here lay some test definitions and calls.
 	** (will be removed later)
 */
-
-jint.classes.register({
-	name: 'Size', package: 'std',
-	init:
-	[
-		null,
-		function()
-		{
-			this.x=0;
-			this.y=0;
-		},
-		"number x, number y",
-		function(args)
-		{
-			this.x=args.x;
-			this.y=args.y;
-		}
-	],
-	methods: []
-});
-
-jint.classes.register({
-	name: 'Size3', package: 'std', superclass: jint.std.Size,
-	init:
-	[
-		null,
-		function()
-		{
-			this.z=0;
-		},
-		"number x, number y, number z",
-		function(args)
-		{
-			this.initSuper(args.x, args.y);
-			this.z=args.z;
-		},
-		"number",
-		function(args)
-		{
-			this.initSuper(args[0], args[0]);
-			this.z=args[0];
-		}
-	],
-	methods: []
-});
-
-try { new jint.std.Size3(15, -10, 4); }
-catch(e){ console.log(e); console.log(e.stack); }

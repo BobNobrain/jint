@@ -1,0 +1,23 @@
+﻿@Interface
+{
+	imports: [ "std:basicInterface.jinc", "myClasses.jinc" ],
+	name: "MyInterface",
+	type: -WINDOW, version: @Version { standart: 1, description: "jint 0.01 alpha" },
+	elements:
+	[
+		@Page("Page Title", "page")
+		{
+			padding: 10,
+			elements:
+			[
+				@Label("Click the button!", null, auto) { sizeSource: -FLOW },
+				@Button("OK", "btn_1", (80; 25))
+				{
+					tooltipText: "Click here!",
+					align: -RIGHT,
+					margin: 5
+				}
+			]
+		}
+	]
+}
